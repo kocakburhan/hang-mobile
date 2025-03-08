@@ -1,0 +1,2 @@
+api'den gelen verileri json formatına çevirmek için 
+models kullanılacak. her dto için ayrı model olacak.

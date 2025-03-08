@@ -7,6 +7,9 @@ import '../widgets/layouts/main_layout.dart';
 import '../data/models/event_models/event_create_model.dart';
 import '../data/services/event_services/event_create_service.dart';
 
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+
 class EventCreateScreen extends StatefulWidget {
   const EventCreateScreen({super.key});
 
@@ -407,6 +410,8 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   }
 
   Widget _buildImageUploadSection() {
+    final urlController = TextEditingController();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -437,6 +442,57 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // URL ile görsel ekleme alanı
+              TextFormField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  labelText: 'Görsel URL',
+                  hintText: 'https://example.com/resim.jpg',
+                  prefixIcon: const Icon(Icons.link),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () async {
+                      if (urlController.text.isNotEmpty) {
+                        try {
+                          // URL'nin geçerliliğini kontrol edebilirsiniz
+                          final url = urlController.text.trim();
+                          if (url.startsWith('http')) {
+                            // URL'yi File nesnesine çeviremeyiz, bu yüzden XFile kullanabiliriz
+                            final response = await http.get(Uri.parse(url));
+                            if (response.statusCode == 200) {
+                              // Geçici bir dosya oluştur
+                              final tempDir = await getTemporaryDirectory();
+                              final fileName = url.split('/').last;
+                              final file = File('${tempDir.path}/$fileName');
+                              await file.writeAsBytes(response.bodyBytes);
+
+                              setState(() {
+                                _selectedImages.add(file);
+                                urlController.clear();
+                              });
+                            } else {
+                              throw Exception('Görsel yüklenemedi');
+                            }
+                          } else {
+                            throw Exception('Geçersiz URL formatı');
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Hata: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               if (_selectedImages.isNotEmpty)
